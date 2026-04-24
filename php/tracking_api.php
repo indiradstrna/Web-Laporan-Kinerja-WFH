@@ -3,6 +3,12 @@ session_start();
 include 'connection.php'; // Pastikan connection.php ada dan benar
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+
+error_reporting(0);
+ini_set('display_errors', 0);
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
@@ -161,20 +167,23 @@ if ($method === 'GET' && $action === 'admin_dashboard_stats') {
 
 // --- GET TASKS (From task_assignments) ---
 if ($method === 'GET' && $action === 'get_tasks') {
-    // Only fetch tasks assigned to this user that are still active (not expired)
-    $sql = "SELECT DISTINCT title as task_name FROM task_assignments 
-            WHERE user_id = '$user_id' 
-            AND (end_date IS NULL OR end_date >= CURDATE())
-            ORDER BY title ASC";
+    // Fetch tasks assigned to this user that are not yet finished today
+    $sql = "SELECT DISTINCT title as task_name FROM task_assignments ta
+            WHERE ta.user_id = '$user_id' 
+            AND (ta.end_date IS NULL OR ta.end_date >= CURDATE())
+            AND ta.title NOT IN (
+                SELECT ws.task_name FROM work_sessions ws 
+                WHERE ws.user_id = '$user_id' 
+                AND DATE(ws.start_time) = CURDATE() 
+                AND ws.status IN ('pending_approval', 'completed')
+            )
+            ORDER BY ta.title ASC";
     $result = $conn->query($sql);
     $task_list = [];
     
     while($row = $result->fetch_assoc()) {
         $task_list[] = ["task_name" => $row['task_name']];
     }
-    
-    // If empty (maybe new user), you might want to show default general tasks or empty
-    // For now we just return what is assigned.
 
     echo json_encode(["status" => "success", "data" => $task_list]);
     exit;
@@ -208,7 +217,13 @@ if ($method === 'POST' && $action === 'start_work') {
     $lat = $conn->real_escape_string($input['lat']);
     $lng = $conn->real_escape_string($input['lng']);
     
-    // Block check removed per request
+    // Block if same task is already active for this user
+    $chk = $conn->query("SELECT id FROM work_sessions WHERE user_id='$user_id' AND task_name='$task_name' AND status IN ('active', 'revision')");
+    if ($chk->num_rows > 0) {
+        echo json_encode(["status" => "error", "message" => "Tugas ini sudah sedang berjalan."]);
+        exit;
+    }
+
     $sql = "INSERT INTO work_sessions (user_id, task_name, start_time, status) VALUES ('$user_id', '$task_name', NOW(), 'active')";
     if ($conn->query($sql)) {
         $session_id = $conn->insert_id;
@@ -463,12 +478,16 @@ if ($method === 'GET' && $action === 'get_all_assignments') {
 // --- USER: GET ASSIGNMENTS ---
 if ($method === 'GET' && $action === 'get_my_schedule') {
     $my_id = $_SESSION['user_id'];
-    // Hanya tampilkan jadwal yang belum berakhir (end_date >= hari ini)
-    // Jika end_date NULL, tetap tampilkan (jadwal tanpa batas waktu)
-    $sql = "SELECT * FROM task_assignments 
-            WHERE user_id = '$my_id' 
-            AND (end_date IS NULL OR end_date >= CURDATE())
-            ORDER BY start_date ASC";
+    // Ambil jadwal yang belum berakhir dan BELUM dikerjakan hari ini
+    $sql = "SELECT ta.* FROM task_assignments ta
+            LEFT JOIN work_sessions ws ON ta.title = ws.task_name 
+                 AND ta.user_id = ws.user_id 
+                 AND DATE(ws.start_time) = CURDATE()
+                 AND ws.status IN ('pending_approval', 'completed')
+            WHERE ta.user_id = '$my_id' 
+            AND (ta.end_date IS NULL OR ta.end_date >= CURDATE())
+            AND ws.id IS NULL
+            ORDER BY ta.start_date ASC";
     $result = $conn->query($sql);
     $data = [];
     while($row = $result->fetch_assoc()) {
@@ -603,8 +622,8 @@ if ($method === 'GET' && $action === 'get_attendance_today') {
     
     // First, try to get today's record
     $sql = "SELECT a.*, e.position, e.type FROM attendance a 
-            JOIN users u ON a.user_id = u.id
-            JOIN employees e ON u.employee_id = e.id
+            LEFT JOIN users u ON a.user_id = u.id
+            LEFT JOIN employees e ON u.employee_id = e.id
             WHERE a.user_id = '$my_id' AND a.date = '$date'";
     $result = $conn->query($sql);
     
@@ -616,8 +635,8 @@ if ($method === 'GET' && $action === 'get_attendance_today') {
         $yesterday = date('Y-m-d', $simTime['timestamp'] - 86400);
         $cutoffDT  = date('Y-m-d H:i:s', $simTime['timestamp'] - 86400); // 24h ago
         $sqlPrev = "SELECT a.*, e.position, e.type FROM attendance a 
-                    JOIN users u ON a.user_id = u.id
-                    JOIN employees e ON u.employee_id = e.id
+                    LEFT JOIN users u ON a.user_id = u.id
+                    LEFT JOIN employees e ON u.employee_id = e.id
                     WHERE a.user_id = '$my_id' 
                     AND a.date = '$yesterday' 
                     AND a.clock_out_time IS NULL 
@@ -749,18 +768,18 @@ if ($method === 'POST' && $action === 'clock_in') {
 
     // Get Employee Info
     $position = '';
+    $type = '';
     $uRes = $conn->query("SELECT e.full_name, e.position, e.type FROM users u 
-                          JOIN employees e ON u.employee_id = e.id 
+                          LEFT JOIN employees e ON u.employee_id = e.id 
                           WHERE u.id = '$my_id'");
     if ($uRes && $uRes->num_rows > 0) {
         $uRow = $uRes->fetch_assoc();
         $position = $uRow['position'] ?? '';
+        $type = $uRow['type'] ?? '';
     }
 
     // Determine Status (Late Logic)
     $status = 'ontime';
-    $position = $uRow['position'] ?? '';
-    $type = $uRow['type'] ?? '';
 
     $isSecurity = ((stripos($position, 'Security') !== false) || (stripos($position, 'Satpam') !== false)) && (stripos($position, 'Chief') === false);
     $isPramubaktiOutsourcing = (stripos($position, 'Pramubakti') !== false) && (stripos($type, 'outsourcing') !== false);
@@ -968,6 +987,15 @@ if ($method === 'GET' && $action === 'get_all_attendance_history') {
 
 // --- ADMIN: APPROVE TASK ---
 if ($method === 'POST' && $action === 'admin_approve_task') {
+    // Permission Check: Only Manager/Manajer
+    $roleTitle = $_SESSION['role_title'] ?? '';
+    $isManager = (stripos($roleTitle, 'manager') !== false || stripos($roleTitle, 'manajer') !== false);
+    
+    if (!$isManager) {
+        echo json_encode(["status" => "error", "message" => "Hanya Manager yang diperbolehkan melakukan Approve."]);
+        exit;
+    }
+
     $input = getInput();
     $session_id = $conn->real_escape_string($input['session_id']);
     
@@ -982,6 +1010,15 @@ if ($method === 'POST' && $action === 'admin_approve_task') {
 
 // --- ADMIN: REVISE TASK ---
 if ($method === 'POST' && $action === 'admin_revise_task') {
+    // Permission Check: Only Manager/Manajer
+    $roleTitle = $_SESSION['role_title'] ?? '';
+    $isManager = (stripos($roleTitle, 'manager') !== false || stripos($roleTitle, 'manajer') !== false);
+    
+    if (!$isManager) {
+        echo json_encode(["status" => "error", "message" => "Hanya Manager yang diperbolehkan melakukan Revisi."]);
+        exit;
+    }
+
     $input = getInput();
     $session_id = $conn->real_escape_string($input['session_id']);
     $note = $conn->real_escape_string($input['note']);

@@ -44,7 +44,7 @@ if ($action === 'login') {
         // Kita cek apakah ID unik ini (HW-MESIN-NIK) sudah pernah dipakai akun lain?
         $dupSql = "SELECT e.full_name FROM users u 
                    JOIN employees e ON u.employee_id = e.id 
-                   WHERE u.mac_address = '$client_mac' 
+                   WHERE (FIND_IN_SET('$client_mac', REPLACE(u.mac_address, ' ', '')) > 0)
                    AND u.id != '" . $user['id'] . "'";
         $dupRes = $conn->query($dupSql);
         
@@ -61,14 +61,18 @@ if ($action === 'login') {
         if (empty($user_mac)) {
             $conn->query("UPDATE users SET mac_address='$client_mac' WHERE id='" . $user['id'] . "'");
         } else {
-            // Verifikasi kecocokan ID
-            $allowed_macs = explode(',', $user_mac);
+            // Verifikasi kecocokan ID (Mendukung Multi-Device, misal: HP & Laptop)
+            $allowed_macs = array_map('trim', explode(',', $user_mac));
             if (!in_array($client_mac, $allowed_macs)) {
-                if ($user['role'] === 'admin' || $user['role'] === 'super admin') {
-                    $new_mac_list = $user_mac . ',' . $client_mac;
+                // Berikan jatah maksimal 2 perangkat untuk user biasa
+                if (count($allowed_macs) < 2 || $user['role'] === 'admin' || $user['role'] === 'super admin') {
+                    $new_mac_list = implode(',', array_merge($allowed_macs, [$client_mac]));
                     $conn->query("UPDATE users SET mac_address='$new_mac_list' WHERE id='" . $user['id'] . "'");
                 } else {
-                    echo json_encode(["status" => "error", "message" => "❌ Perangkat tidak terdaftar! HP ini terikat ke NIK: $bound_nik. ID Anda: $client_mac"]);
+                    echo json_encode([
+                        "status" => "error", 
+                        "message" => "❌ Batas maksimal perangkat (2 HP/Laptop) tercapai! Gunakan perangkat yang sudah terdaftar atau hubungi Admin."
+                    ]);
                     exit;
                 }
             }
@@ -99,6 +103,7 @@ if ($action === 'login') {
             $_SESSION['role'] = $sessionRole;
             $_SESSION['actual_role'] = $actualRole; // Simpan role asli untuk referensi
             $_SESSION['full_name'] = $user['full_name'];
+            $_SESSION['role_title'] = $user['role_title'] ?? '';
             
             // Tentukan redirect
             if ($sessionRole === 'super admin') {
@@ -136,7 +141,8 @@ if ($action === 'check_session') {
             "user" => [
                 "id" => $_SESSION['user_id'],
                 "role" => $_SESSION['role'],
-                "name" => $_SESSION['full_name']
+                "name" => $_SESSION['full_name'],
+                "role_title" => $_SESSION['role_title'] ?? ''
             ]
         ]);
     } else {

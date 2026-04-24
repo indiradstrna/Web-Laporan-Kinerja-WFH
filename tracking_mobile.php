@@ -152,7 +152,23 @@
             <main class="content-body">
                 
                 <!-- DASHBOARD GRID -->
-                <div id="view-dashboard" class="grid-2" style="align-items: start;">
+                <div id="view-dashboard" class="view-section grid-2" style="align-items: start;">
+                    
+                    <!-- ATTENDANCE WARNING (Locked State) -->
+                    <div id="attendanceWarning" class="hidden" style="grid-column: 1 / -1; margin-bottom: 1.5rem;">
+                        <div class="card" style="background: #fff1f2; border: 1px solid #fecaca; padding: 2rem; text-align: center;">
+                            <div style="background: #ef4444; color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                                <i data-lucide="alert-triangle" style="width:28px; height:28px;"></i>
+                            </div>
+                            <h4 style="color: #991b1b; font-weight: 700; margin-bottom: 0.5rem; font-size: 1.25rem;">Absensi Diperlukan</h4>
+                            <p style="color: #b91c1c; font-size: 0.95rem; margin-bottom: 1.5rem; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5;">
+                                Maaf, Anda tidak dapat memulai pengerjaan tugas sebelum melakukan Clock In hari ini.
+                            </p>
+                            <button class="btn btn-primary" onclick="switchView('attendance')" style="width: 100%; max-width: 250px; margin: 0 auto; height: 48px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <i data-lucide="log-in" style="width:18px; height:18px;"></i> Ke Menu Absensi
+                            </button>
+                        </div>
+                    </div>
                     
                     <!-- LEFT: Action Card -->
                     <div>
@@ -487,6 +503,7 @@
         document.getElementById('currentDateDisplay').textContent = now.toLocaleDateString('id-ID', options);
 
         await checkAuth();
+        await loadAttendanceStatus(); // CHECK ATTENDANCE LOCK
         await loadTasks(); // Manual Tasks
         await loadMySchedule(); // Scheduled Tasks
         await checkActiveSessions(); // UPDATED FUNCTION NAME
@@ -726,23 +743,15 @@
     }
 
     function toggleActiveView(hasActive) {
-        // If hasActive is true, we actully show BOTH lists? 
-        // Request says: "Start Scheduled -> Time Running -> Click Start Conditional -> 2 counts".
-        // This implies the "Idle/Input" forms must REMAIN VISIBLE or accessible even when working.
-        
-        // We will keep 'idleState' (Input Forms) always visible now, but maybe styled differently?
-        // Or we just prepend active sessions above the inputs.
-        
         const activeList = document.getElementById('activeSessionsList');
-        // We don't hide 'idleState' anymore because user needs to add more tasks!
-        // But maybe we want to visually separate them.
         
-        // Just ensure the active list is visible if it has children
         if (activeSessions.length > 0) {
             activeList.classList.remove('hidden');
         } else {
             activeList.classList.add('hidden');
         }
+        
+        // Removed global locking to allow double jobs (different tasks)
     }
 
     // --- LOCATION & START WORK ---
@@ -776,6 +785,13 @@
     }
 
     async function initiateWorkSession(taskName, btn) {
+        // Redundancy Check: Is this task already running?
+        const isRunning = activeSessions.some(s => s.task_name === taskName);
+        if (isRunning) {
+            alert(`Tugas "${taskName}" sudah sedang berjalan. Silakan selesaikan sesi tersebut terlebih dahulu.`);
+            return;
+        }
+
         // UX: Show loading
         const originalText = btn.innerHTML;
         const originalDisabled = btn.disabled;
@@ -1028,6 +1044,7 @@
             const btnOut = document.getElementById('btn-clock-out');
             const summary = document.getElementById('att-summary-text');
             const card = document.getElementById('attendance-status-card');
+            const workTypeSel = document.getElementById('workTypeSelect');
 
             // Reset Default State
             btnIn.disabled = false; btnIn.style.opacity = 1; btnIn.style.cursor = 'pointer';
@@ -1036,13 +1053,56 @@
             btnOut.disabled = true; btnOut.style.opacity = 0.5; btnOut.style.cursor = 'not-allowed';
             btnOut.innerHTML = `<i data-lucide="log-out" style="width: 32px; height: 32px;"></i><span>CLOCK OUT</span><span style="font-size: 0.8rem; font-weight: 400; opacity: 0.9;">Pulang Kerja</span>`;
             
+            if (workTypeSel) {
+                workTypeSel.disabled = false;
+                workTypeSel.style.opacity = 1;
+            }
+
             card.classList.add('hidden');
+            
+            // --- ATTENDANCE LOCK LOGIC ---
+            const dashboardLock = document.getElementById('attendanceWarning');
+            const taskInputs = [
+                document.getElementById('taskSelect'),
+                document.getElementById('manualTaskInput'),
+                document.querySelector('.btn-start'),
+                document.querySelector('button[onclick="startConditionalTimer(this)"]')
+            ];
+
+            if (json.status !== 'success') {
+                // Not Clocked In
+                if (dashboardLock) dashboardLock.classList.remove('hidden');
+                taskInputs.forEach(el => {
+                    if (el) {
+                        el.disabled = true;
+                        el.style.opacity = "0.5";
+                        el.style.cursor = "not-allowed";
+                    }
+                });
+            } else {
+                // Already Clocked In
+                if (dashboardLock) dashboardLock.classList.add('hidden');
+                taskInputs.forEach(el => {
+                    if (el) {
+                        el.disabled = false;
+                        el.style.opacity = "1";
+                        el.style.cursor = "pointer";
+                    }
+                });
+            }
 
             if (json.status === 'success') {
                 const data = json.data;
                 const inTime = data.clock_in_time.split(' ')[1].substring(0,5); 
                 const outTime = data.clock_out_time ? data.clock_out_time.split(' ')[1].substring(0,5) : null;
                 
+                // Lock Work Type based on clock-in record
+                if (data.work_type && workTypeSel) {
+                    workTypeSel.value = data.work_type;
+                    workTypeSel.disabled = true;
+                    workTypeSel.style.opacity = 0.7;
+                }
+
                 // --- IN STATUS ---
                 // DB 'status' relies on the 08:15 logic. 
                 // Late if > 08:15. OnTime if <= 08:15.
@@ -1416,6 +1476,50 @@
     window.closeSopModal = function() {
         document.getElementById('sopModal').classList.remove('open');
     }
+
+    // --- AUTO REFRESH SYSTEM ---
+    let lastStateHash = "";
+    function startAutoRefresh() {
+        setInterval(async () => {
+            // Pause refresh if user is in the middle of reporting or scanning
+            if (document.getElementById('evidenceModal').classList.contains('open') || 
+                document.getElementById('qrScannerModal').classList.contains('open')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('php/tracking_api.php?action=check_active_session');
+                const json = await res.json();
+                
+                // Create a simple hash/string of statuses to detect change
+                let currentState = "";
+                if (json.status === 'active' && json.sessions) {
+                    currentState = json.sessions.map(s => `${s.id}:${s.status}`).join('|');
+                } else {
+                    currentState = "no-session";
+                }
+
+                // If state changed (e.g. status changed from active to revision by admin)
+                if (currentState !== lastStateHash) {
+                    console.log("State change detected, refreshing UI...");
+                    lastStateHash = currentState;
+                    await checkActiveSessions();
+                    
+                    // Also refresh history if currently viewing history
+                    if (!document.getElementById('view-history').classList.contains('hidden')) {
+                        loadHistory();
+                    }
+                }
+            } catch (e) {
+                console.error("Auto refresh failed", e);
+            }
+        }, 10000); // 10 seconds
+    }
+
+    // Initialize auto refresh on load
+    document.addEventListener('DOMContentLoaded', () => {
+        startAutoRefresh();
+    });
 </script>
 </body>
 </html>

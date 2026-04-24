@@ -17,6 +17,7 @@ let currentMasterPage = 1; // Master Pagination
 let currentMonitorPage = 1; // Monitor Pagination
 let currentHistoryPage = 1; // History Pagination (New)
 let currentDetailData = null; // Store data currently displayed in detail modal for PDF printing
+let currentUserRoleTitle = "";
 // --------------------------------------------------
 
 const DIMENSIONS = [
@@ -35,8 +36,9 @@ const getPeriodLabel = (dStr) => {
     return d.getDate() <= 15 ? 'Periode 1' : 'Periode 2';
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
+    await checkAuth(); // Fetch user info first
     loadDashboardStats();
     fetchData();
     fetchHistoryData();
@@ -858,7 +860,7 @@ function renderTable() {
 
         if (isBound) {
             actions += `
-            <button class="btn btn-outline btn-sm" onclick="resetMac('${row.profile.name}')" title="Reset Security MAC">
+            <button class="btn btn-outline btn-sm" onclick="resetMac('${row.profile.name}')" title="Reset Seluruh Perangkat (HP/Laptop)">
                 <i data-lucide="rotate-ccw" style="width:14px; color:#ef4444;"></i>
             </button>`;
         }
@@ -1687,23 +1689,40 @@ if (logoutBtn) {
     });
 }
 
-// Monitoring Data
-window.loadMonitoringData = async function () {
+async function checkAuth() {
+    try {
+        const res = await fetch('php/auth.php', { method: 'POST', body: JSON.stringify({ action: 'check_session' }) });
+        const data = await res.json();
+        if (data.status === 'logged_in') {
+            currentUserRoleTitle = data.user.role_title || "";
+        } else {
+            window.location.href = 'login.php';
+        }
+    } catch(e) { console.error(e); }
+}
+
+let lastMonitoringHash = "";
+window.loadMonitoringData = async function (isSilent = false) {
     try {
         const res = await fetch('php/tracking_api.php?action=admin_monitor');
         const json = await res.json();
 
         if (json.status === 'success') {
+            const currentHash = JSON.stringify(json.data);
+            if (isSilent && currentHash === lastMonitoringHash) return; // Skip if no change
+            
+            lastMonitoringHash = currentHash;
             monitoringData = json.data;
         } else {
-            console.error("Failed to load monitoring data");
             monitoringData = [];
         }
         renderMonitoringTable();
     } catch (e) {
         console.error(e);
-        monitoringData = [];
-        renderMonitoringTable();
+        if (!isSilent) {
+            monitoringData = [];
+            renderMonitoringTable();
+        }
     }
 }
 
@@ -1814,12 +1833,19 @@ function renderMonitoringTable() {
         // Actions
         let actionHtml = '-';
         if (row.status === 'pending_approval') {
-            actionHtml = `
-                <div style="display:flex; gap:5px; align-items:center;">
-                    <button class="btn btn-outline btn-sm" onclick="approveTask('${row.id}')" style="background:#f0fdf4; color:#16a34a; border-color:#86efac;">Approve</button>
-                    <button class="btn btn-outline btn-sm" onclick="reviseTask('${row.id}')" style="background:#fef2f2; color:#dc2626; border-color:#fca5a5;">Revisi</button>
-                </div>
-            `;
+            const rt = currentUserRoleTitle.toLowerCase();
+            const isManager = (rt.includes('manager') || rt.includes('manajer'));
+            
+            if (isManager) {
+                actionHtml = `
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <button class="btn btn-outline btn-sm" onclick="approveTask('${row.id}')" style="background:#f0fdf4; color:#16a34a; border-color:#86efac;">Approve</button>
+                        <button class="btn btn-outline btn-sm" onclick="reviseTask('${row.id}')" style="background:#fef2f2; color:#dc2626; border-color:#fca5a5;">Revisi</button>
+                    </div>
+                `;
+            } else {
+                actionHtml = `<span style="font-size:0.75rem; color:#94a3b8; font-style:italic;">(Hanya Manager)</span>`;
+            }
         }
 
         tbody.innerHTML += `
@@ -2776,7 +2802,7 @@ window.exportAttToExcel = function () {
 updateAttDateInput('daily');
 
 async function resetMac(name) {
-    if (!confirm(`Apakah Anda yakin ingin menghapus Security MAC untuk ${name}?\nIni akan memungkinkan user login dari perangkat baru.`)) return;
+    if (!confirm(`Apakah Anda yakin ingin menghapus SEMUA perangkat terdaftar (HP & Laptop) untuk ${name}?\nSetelah reset, user bisa mendaftarkan 2 perangkat baru lagi.`)) return;
 
     try {
         const res = await fetch('php/api.php', {
@@ -2795,3 +2821,35 @@ async function resetMac(name) {
         alert("Terjadi kesalahan koneksi");
     }
 }
+
+// --- ADMIN AUTO REFRESH SYSTEM ---
+function startAdminAutoRefresh() {
+    setInterval(() => {
+        // Skip if any modal is open (like Revise Modal, Edit Modal, or Delete Modal)
+        // to avoid disrupting admin's focus or losing input.
+        const openModal = document.querySelector('.modal-overlay.open') || 
+                         document.querySelector('.modal.open') || 
+                         document.querySelector('.evidence-modal.open') ||
+                         document.getElementById('reviseModal')?.classList.contains('open');
+        
+        if (openModal) return;
+
+        const dashboardSec = document.getElementById('dashboard');
+        const monitoringSec = document.getElementById('monitoring');
+
+        // Update Dashboard Stats if visible
+        if (dashboardSec && !dashboardSec.classList.contains('hidden')) {
+            loadDashboardStats();
+        }
+
+        // Update Monitoring Table if visible (using silent mode)
+        if (monitoringSec && !monitoringSec.classList.contains('hidden')) {
+            loadMonitoringData(true);
+        }
+    }, 10000); // Poll every 10 seconds
+}
+
+// Initialize Admin Auto Refresh
+document.addEventListener('DOMContentLoaded', () => {
+    startAdminAutoRefresh();
+});
