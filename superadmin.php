@@ -104,6 +104,56 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'super admin') {
                 
                 <div id="dashboard" class="view-section">
                     
+                    <!-- Welcome Bar -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 20px; margin-bottom:1.5rem;">
+                        <div>
+                            <h4 style="margin:0; font-size:1.05rem; font-weight:700; color:#0f172a;">Selamat Datang, <?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Super Admin'); ?> 👋</h4>
+                            <p style="margin:0; font-size:0.82rem; color:#64748b; margin-top:2px;">Anda berada di panel Super Administrator. Pantau seluruh aktivitas dan kinerja karyawan di sini.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="dash-last-refresh" style="font-size:0.75rem; color:#94a3b8;"></span>
+                            <button onclick="loadDashboardStats(true)" class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:5px;height:34px;">
+                                <i data-lucide="refresh-cw" style="width:14px;"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Operational Stat Cards -->
+                    <div class="grid-4" style="margin-bottom: 1.5rem;">
+                        <div class="card stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Total Karyawan</span>
+                                <i data-lucide="users" class="stat-icon"></i>
+                            </div>
+                            <div class="stat-value" id="dash-total-emp">—</div>
+                            <div class="stat-desc">Akun terdaftar dalam sistem</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Sesi Kerja Aktif</span>
+                                <i data-lucide="activity" class="stat-icon"></i>
+                            </div>
+                            <div class="stat-value" id="dash-active-sessions">—</div>
+                            <div class="stat-desc text-green">Pegawai sedang bekerja sekarang</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Menunggu Approval</span>
+                                <i data-lucide="hourglass" class="stat-icon"></i>
+                            </div>
+                            <div class="stat-value" id="dash-pending">—</div>
+                            <div class="stat-desc text-yellow" style="color:#d97706;">Laporan perlu ditinjau</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-header">
+                                <span class="stat-title">Hadir Hari Ini</span>
+                                <i data-lucide="user-check" class="stat-icon"></i>
+                            </div>
+                            <div class="stat-value" id="dash-attendance">—</div>
+                            <div class="stat-desc" id="dash-late-desc">Karyawan Clock-In</div>
+                        </div>
+                    </div>
+                    
                     <div class="dashboard-filters">
                         <div class="filter-item" style="flex-grow: 1; min-width: 200px;">
                             <label>Cari Pegawai</label>

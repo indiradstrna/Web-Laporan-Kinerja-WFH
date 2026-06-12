@@ -2,13 +2,17 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db = "biokpi_db";
+$db = "db_gabungan";
 
 $conn = new mysqli($host, $user, $pass, $db);
 
 // FIX TIMEZONE: Force Asia/Jakarta (WIB)
 date_default_timezone_set('Asia/Jakarta');
 $conn->query("SET time_zone = '+07:00'");
+
+// FIX SQL MODE & CHARSET for Hosting Compatibility
+$conn->query("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'");
+$conn->set_charset("utf8mb4");
 
 if ($conn->connect_error) {
     // Attempt to create DB if not exists

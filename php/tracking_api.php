@@ -98,7 +98,13 @@ if ($method === 'GET' && $action === 'admin_dashboard_stats') {
             $myDept = strtoupper(trim($me['department']));
             $myRole = strtoupper(trim($me['role_title']));
 
-            $isSuperAdmin = (isset($_SESSION['actual_role']) && $_SESSION['actual_role'] === 'super admin');
+            // Check if Super Admin (case-insensitive and checking multiple session keys)
+            $isSuperAdmin = false;
+            if (isset($_SESSION['actual_role']) && strcasecmp($_SESSION['actual_role'], 'super admin') === 0) {
+                $isSuperAdmin = true;
+            } elseif (isset($_SESSION['role']) && strcasecmp($_SESSION['role'], 'super admin') === 0) {
+                $isSuperAdmin = true;
+            }
 
             if (!$isSuperAdmin) {
                 $deptFilter = $conn->real_escape_string($me['department']);
@@ -339,7 +345,9 @@ if ($method === 'POST' && $action === 'stop_work') {
             
     if ($conn->query($sql)) {
         // Log Final GPS
-        $conn->query("INSERT INTO gps_logs (session_id, latitude, longitude, trigger_type) VALUES ('$session_id', '$lat', '$lng', 'stop')");
+        if ($lat !== '' && $lng !== '') {
+            $conn->query("INSERT INTO gps_logs (session_id, latitude, longitude, trigger_type) VALUES ('$session_id', '$lat', '$lng', 'stop')");
+        }
         
         // Insert or Update into EVIDENCE table
         $chkEv = $conn->query("SELECT id FROM evidence WHERE session_id='$session_id'");
@@ -372,7 +380,14 @@ if ($method === 'GET' && $action === 'admin_monitor') {
         $mChk = $conn->query("SELECT department FROM employees WHERE full_name = '" . $conn->real_escape_string($myName) . "' LIMIT 1");
         if ($mChk && $mChk->num_rows > 0) {
              $me = $mChk->fetch_assoc();
-             $isSuperAdmin = (isset($_SESSION['actual_role']) && $_SESSION['actual_role'] === 'super admin');
+             // Check if Super Admin (case-insensitive and checking multiple session keys)
+             $isSuperAdmin = false;
+             if (isset($_SESSION['actual_role']) && strcasecmp($_SESSION['actual_role'], 'super admin') === 0) {
+                 $isSuperAdmin = true;
+             } elseif (isset($_SESSION['role']) && strcasecmp($_SESSION['role'], 'super admin') === 0) {
+                 $isSuperAdmin = true;
+             }
+
              if (!$isSuperAdmin) {
                  $deptFilter = $conn->real_escape_string($me['department']);
              }
@@ -532,7 +547,7 @@ if ($method === 'GET' && $action === 'get_user_history') {
 if ($method === 'GET' && $action === 'get_users_list') {
     
     // 1. SYNC LOGIC: Cari pegawai di tabel employees yang belum punya akun di tabel users
-    $syncSql = "SELECT id, full_name, role_title, nik FROM employees 
+    $syncSql = "SELECT id, full_name, role_title, nip_nik as nik FROM employees 
                 WHERE id NOT IN (SELECT employee_id FROM users WHERE employee_id IS NOT NULL)";
     $missing = $conn->query($syncSql);
     
@@ -574,7 +589,13 @@ if ($method === 'GET' && $action === 'get_users_list') {
              $myDept = strtoupper(trim($me['department']));
              $myRole = strtoupper(trim($me['role_title']));
              
-             $isSuperAdmin = (isset($_SESSION['actual_role']) && $_SESSION['actual_role'] === 'super admin');
+             // Check if Super Admin (case-insensitive and checking multiple session keys)
+             $isSuperAdmin = false;
+             if (isset($_SESSION['actual_role']) && strcasecmp($_SESSION['actual_role'], 'super admin') === 0) {
+                 $isSuperAdmin = true;
+             } elseif (isset($_SESSION['role']) && strcasecmp($_SESSION['role'], 'super admin') === 0) {
+                 $isSuperAdmin = true;
+             }
 
              if (!$isSuperAdmin) {
                  $deptFilter = $conn->real_escape_string($me['department']);

@@ -13,10 +13,10 @@ if ($action === 'login') {
     $login_as = $input['login_as'] ?? 'auto'; // 'admin', 'user', or 'auto' (default)
 
     // Updated query: Join users with employees
-    $sql = "SELECT u.*, e.full_name, e.nik, e.role_title 
+    $sql = "SELECT u.*, e.full_name, e.nip_nik as nik, e.role_title 
             FROM users u 
             JOIN employees e ON u.employee_id = e.id 
-            WHERE e.nik = '$username'";
+            WHERE e.nip_nik = '$username'";
     $result = $conn->query($sql);
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();

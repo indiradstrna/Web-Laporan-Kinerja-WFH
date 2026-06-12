@@ -800,17 +800,24 @@
         btn.disabled = true;
         lucide.createIcons();
 
+        let lat = '';
+        let lng = '';
         try {
             const pos = await getPosition();
-            const { latitude, longitude } = pos.coords;
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+        } catch (err) {
+            console.warn("Location not available for start_work:", err);
+        }
 
+        try {
             btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Memulai Sesi...';
             lucide.createIcons();
 
             const res = await fetch('php/tracking_api.php?action=start_work', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ task_name: taskName, lat: latitude, lng: longitude })
+                body: JSON.stringify({ task_name: taskName, lat: lat, lng: lng })
             }); 
             const json = await res.json();
 
@@ -838,7 +845,7 @@
             }
         } catch (e) {
             console.error(e);
-            alert("Gagal Mengakses Lokasi!\n\nPastikan:\n1. GPS Anda aktif.\n2. Anda mengizinkan browser mengakses lokasi.\n3. Coba refresh halaman jika pop-up tidak muncul.");
+            alert("Gagal Memulai Sesi: " + e.message);
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -912,13 +919,21 @@
             }
 
             // Normal Stop Flow
-            const pos = await getPosition();
+            let lat = '';
+            let lng = '';
+            try {
+                const pos = await getPosition();
+                lat = pos.coords.latitude;
+                lng = pos.coords.longitude;
+            } catch (err) {
+                console.warn("Location not available for stop_work:", err);
+            }
             
             formData.append('session_id', sessionToStop);
             formData.append('notes', document.getElementById('workNotes').value);
             formData.append('evidence', file);
-            formData.append('lat', pos.coords.latitude);
-            formData.append('lng', pos.coords.longitude);
+            formData.append('lat', lat);
+            formData.append('lng', lng);
 
             const res = await fetch('php/tracking_api.php?action=stop_work', { method: 'POST', body: formData });
             const json = await res.json();

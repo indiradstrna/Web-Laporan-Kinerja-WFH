@@ -28,7 +28,13 @@ if (isset($_SESSION['full_name'])) {
         $myDept = strtoupper(trim($me['department']));
         $myRole = strtoupper(trim($me['role_title']));
         
-        $isSuperAdmin = (isset($_SESSION['actual_role']) && $_SESSION['actual_role'] === 'super admin');
+        // Check if Super Admin (case-insensitive and checking multiple session keys)
+        $isSuperAdmin = false;
+        if (isset($_SESSION['actual_role']) && strcasecmp($_SESSION['actual_role'], 'super admin') === 0) {
+            $isSuperAdmin = true;
+        } elseif (isset($_SESSION['role']) && strcasecmp($_SESSION['role'], 'super admin') === 0) {
+            $isSuperAdmin = true;
+        }
         
         if (!$isSuperAdmin) {
              $deptFilter = $conn->real_escape_string($me['department']);
@@ -40,7 +46,7 @@ if (isset($_SESSION['full_name'])) {
 if ($method === 'GET') {
     if (isset($_GET['action']) && $_GET['action'] === 'get_all_assessments') {
         $sql = "SELECT a.id, a.assessment_date, a.total_score, a.period,
-                e.id as emp_id, e.full_name, e.department, e.role_title, e.nik, e.position, e.type
+                e.id as emp_id, e.full_name, e.department, e.role_title, e.nip_nik as nik, e.position, e.type
                 FROM assessments a
                 JOIN employees e ON a.employee_id = e.id";
         
@@ -70,7 +76,7 @@ if ($method === 'GET') {
             
             // Fetch History: Join Assessment + Employee + Target (Year based on Assessment Date Year)
             $sql = "SELECT a.id, a.assessment_date, a.period, a.data_json, a.extra_score, a.total_score,
-                    e.full_name, e.nik, e.department, e.role_title, e.position, e.education, e.tenure, e.certificates, e.type,
+                    e.full_name, e.nip_nik as nik, e.department, e.role_title, e.position, e.education, e.tenure, e.certificates, e.type,
                     t.target_3_months, t.target_6_months, t.target_1_year
                     FROM assessments a
                     JOIN employees e ON a.employee_id = e.id
@@ -143,7 +149,7 @@ if ($method === 'GET') {
     }
 
     // 2. Fetch Employee List
-    $sql = "SELECT e.id as emp_id, e.full_name, e.nik, e.department, e.role_title, e.position,
+    $sql = "SELECT e.id as emp_id, e.full_name, e.nip_nik as nik, e.department, e.role_title, e.position,
             e.education, e.tenure, e.certificates, e.type, u.mac_address,
             AVG(a.total_score) as avg_score, MAX(a.assessment_date) as last_date
             FROM employees e
@@ -155,7 +161,10 @@ if ($method === 'GET') {
         $sql .= " WHERE e.department = '$deptFilter' AND e.full_name != '$myName' ";
     }
             
-    $sql .= " GROUP BY e.id ORDER BY last_date DESC";
+    $sql .= " GROUP BY e.id ";
+    
+    // Add sorting
+    $sql .= " ORDER BY last_date DESC";
             
     $result = $conn->query($sql);
     
@@ -281,7 +290,7 @@ if ($method === 'POST') {
     $nik = isset($input['profile']['empId']) ? $conn->real_escape_string($input['profile']['empId']) : '';
     
     $checkSql = "SELECT id FROM employees WHERE full_name = '$name'";
-    if (!empty($nik)) $checkSql .= " AND nik = '$nik'";
+    if (!empty($nik)) $checkSql .= " AND nip_nik = '$nik'";
     
     $checkRes = $conn->query($checkSql);
     $employee_id = 0;
@@ -305,7 +314,7 @@ if ($method === 'POST') {
         $pos = isset($input['profile']['position']) ? $conn->real_escape_string($input['profile']['position']) : '';
         $type = isset($input['profile']['type']) ? $conn->real_escape_string($input['profile']['type']) : 'outsourcing';
         
-        $insEmp = "INSERT INTO employees (full_name, nik, department, role_title, position, type) VALUES ('$name', '$nik', '$dept', '$role', '$pos', '$type')";
+        $insEmp = "INSERT INTO employees (full_name, nip_nik, department, role_title, position, type) VALUES ('$name', '$nik', '$dept', '$role', '$pos', '$type')";
         if ($conn->query($insEmp)) {
             $employee_id = $conn->insert_id;
             
