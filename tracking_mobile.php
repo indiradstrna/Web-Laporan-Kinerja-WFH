@@ -1108,8 +1108,10 @@
 
             if (json.status === 'success') {
                 const data = json.data;
-                const inTime = data.clock_in_time.split(' ')[1].substring(0,5); 
-                const outTime = data.clock_out_time ? data.clock_out_time.split(' ')[1].substring(0,5) : null;
+                const inTimeStr = data.clock_in_time || "00:00:00";
+                const inTime = inTimeStr.includes(' ') ? inTimeStr.split(' ')[1].substring(0,5) : inTimeStr.substring(0,5); 
+                const outTimeStr = data.clock_out_time || "";
+                const outTime = outTimeStr ? (outTimeStr.includes(' ') ? outTimeStr.split(' ')[1].substring(0,5) : outTimeStr.substring(0,5)) : null;
                 
                 // Lock Work Type based on clock-in record
                 if (data.work_type && workTypeSel) {

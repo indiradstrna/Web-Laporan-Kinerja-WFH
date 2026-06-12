@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db = "db_gabungan";
+$db = "biotrop";
 
 $conn = new mysqli($host, $user, $pass, $db);
 
