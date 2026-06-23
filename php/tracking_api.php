@@ -394,7 +394,7 @@ if ($method === 'GET' && $action === 'admin_monitor') {
         }
     }
 
-    $sql = "SELECT ws.*, e.full_name, ws.task_name,
+    $sql = "SELECT ws.*, e.full_name, e.type as employee_type, ws.task_name,
             COALESCE((SELECT type FROM task_assignments WHERE title = ws.task_name AND user_id = ws.user_id LIMIT 1), 'Kondisional') as task_type,
             (SELECT COUNT(*) FROM gps_logs gl WHERE gl.session_id = ws.id) as log_count,
             ev.file_path as evidence_file,

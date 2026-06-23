@@ -44,6 +44,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
                         <i data-lucide="layout-dashboard"></i> Dashboard
                     </a>
 
+                    <a href="#data-master" class="nav-item">
+                        <i data-lucide="users"></i> Data Karyawan
+                    </a>
+
                     <a href="#monitoring" class="nav-item">
                         <i data-lucide="map-pin"></i> Monitoring Kerja
                     </a>
@@ -635,6 +639,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
                                         <option value="Bulanan">Bulanan</option>
                                         <option value="Kondisional">Kondisional</option>
                                         <option value="Tugas Khusus">Tugas Khusus</option>
+                                    </select>
+                                </div>
+                                <div style="position: relative;">
+                                    <select id="monitorEmployeeType" style="padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; font-size: 0.875rem; color: #475569; width: auto; height: 38px; background-color: white;">
+                                        <option value="">Semua Kategori</option>
+                                        <option value="outsourcing">Outsourcing</option>
+                                        <option value="PPPK">PPPK</option>
+                                        <option value="PNS">PNS</option>
                                     </select>
                                 </div>
                                 <div style="position: relative;">

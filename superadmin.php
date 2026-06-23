@@ -719,6 +719,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'super admin') {
                                         <option value="Mingguan">Mingguan</option>
                                         <option value="Bulanan">Bulanan</option>
                                         <option value="Kondisional">Kondisional</option>
+                                        <option value="Tugas Khusus">Tugas Khusus</option>
+                                    </select>
+                                </div>
+                                <div style="position: relative;">
+                                    <select id="monitorEmployeeType" style="padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; font-size: 0.875rem; color: #475569; width: auto; height: 38px; background-color: white;">
+                                        <option value="">Semua Kategori</option>
+                                        <option value="outsourcing">Outsourcing</option>
+                                        <option value="PPPK">PPPK</option>
+                                        <option value="PNS">PNS</option>
                                     </select>
                                 </div>
                                 <div style="position: relative;">

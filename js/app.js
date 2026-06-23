@@ -63,10 +63,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Monitoring Filters
     if (qs('#monitorDate')) qs('#monitorDate').addEventListener('change', renderMonitoringTable);
     if (qs('#monitorSearch')) qs('#monitorSearch').addEventListener('input', renderMonitoringTable);
     if (qs('#monitorType')) qs('#monitorType').addEventListener('change', renderMonitoringTable);
+    if (qs('#monitorEmployeeType')) qs('#monitorEmployeeType').addEventListener('change', renderMonitoringTable);
 
     // Master Data Limit
     if (qs('#limit-master')) {
@@ -1730,6 +1730,7 @@ function renderMonitoringTable() {
     const dateFilter = qs('#monitorDate') ? qs('#monitorDate').value : '';
     const searchFilter = qs('#monitorSearch') ? qs('#monitorSearch').value.toLowerCase().trim() : '';
     const typeFilter = qs('#monitorType') ? qs('#monitorType').value : '';
+    const empTypeFilter = qs('#monitorEmployeeType') ? qs('#monitorEmployeeType').value.toLowerCase() : '';
 
     // Filter Data
     const filtered = monitoringData.filter(row => {
@@ -1745,14 +1746,21 @@ function renderMonitoringTable() {
             dateMatch = rowDate === dateFilter;
         }
 
-        // Type Match
+        // Task Type Match
         let typeMatch = true;
         if (typeFilter) {
             const rowType = row.task_type || 'Kondisional';
             typeMatch = rowType === typeFilter;
         }
 
-        return nameMatch && dateMatch && typeMatch;
+        // Employee Type Match (outsourcing / PPPK / PNS)
+        let empTypeMatch = true;
+        if (empTypeFilter) {
+            const rowEmpType = (row.employee_type || '').toLowerCase();
+            empTypeMatch = rowEmpType === empTypeFilter;
+        }
+
+        return nameMatch && dateMatch && typeMatch && empTypeMatch;
     });
 
     const limit = qs('#limit-monitor') ? parseInt(qs('#limit-monitor').value) : 10;
