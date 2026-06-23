@@ -1193,10 +1193,10 @@
             const workType = document.getElementById('workTypeSelect') ? document.getElementById('workTypeSelect').value : 'WFO';
             
             if (workType === 'WFO') {
-                // SEAMEO BIOTROP Distance Check
-                const targetLat = -6.635;
-                const targetLng = 106.825;
-                const maxDist = 0.5; // km
+                // SEAMEO BIOTROP Distance Check (koordinat akurat)
+                const targetLat = -6.636591;
+                const targetLng = 106.82603;
+                const maxDist = 0.6; // km (radius 600m, toleransi GPS ±100m)
                 
                 const dist = getDistanceFromLatLonInKm(lat, lng, targetLat, targetLng);
                 if (dist > maxDist) {

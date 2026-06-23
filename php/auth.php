@@ -20,6 +20,7 @@ if ($action === 'login') {
     $result = $conn->query($sql);
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();
+        if (strtolower(trim($user['role'])) === 'superadmin') $user['role'] = 'super admin';
         
         // --- MAC ADDRESS SECURITY (Hardware + NIK Pemilik) ---
         $client_mac = $input['mac_address'] ?? 'unknown';

@@ -917,9 +917,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'super admin') {
                             <!-- CRUD EMPLOYEES -->
                 <div id="crud-employee" class="view-section hidden">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Kelola Data Karyawan</h3>
-                            <p class="card-sub">Edit profil dan info jabatan karyawan secara langsung.</p>
+                        <div class="card-header flex-between">
+                            <div>
+                                <h3 class="card-title">Kelola Data Karyawan</h3>
+                                <p class="card-sub">Edit profil dan info jabatan karyawan secara langsung.</p>
+                            </div>
+                            <div style="position: relative;">
+                                <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; color: #94a3b8;"></i>
+                                <input type="text" id="search-crud-emp" placeholder="Cari Karyawan..." onkeyup="filterCRUD('employee')"
+                                       style="padding: 6px 10px 6px 32px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; font-size: 0.875rem; width: 200px; height: 38px;">
+                            </div>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-container">
@@ -935,9 +942,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'super admin') {
                 <!-- CRUD ATTENDANCE -->
                 <div id="crud-attendance" class="view-section hidden">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Kelola Data Absensi</h3>
-                            <p class="card-sub">Perbaiki waktu clock-in/out karyawan.</p>
+                        <div class="card-header flex-between">
+                            <div>
+                                <h3 class="card-title">Kelola Data Absensi</h3>
+                                <p class="card-sub">Perbaiki waktu clock-in/out karyawan.</p>
+                            </div>
+                            <div style="position: relative;">
+                                <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; color: #94a3b8;"></i>
+                                <input type="text" id="search-crud-att" placeholder="Cari Absensi..." onkeyup="filterCRUD('attendance')"
+                                       style="padding: 6px 10px 6px 32px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; font-size: 0.875rem; width: 200px; height: 38px;">
+                            </div>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-container">
@@ -953,9 +967,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'super admin') {
                 <!-- CRUD WORK SESSIONS -->
                 <div id="crud-worksession" class="view-section hidden">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Kelola Sesi Kerja</h3>
-                            <p class="card-sub">Perbaiki waktu mulai/selesai atau status tugas.</p>
+                        <div class="card-header flex-between">
+                            <div>
+                                <h3 class="card-title">Kelola Sesi Kerja</h3>
+                                <p class="card-sub">Perbaiki waktu mulai/selesai atau status tugas.</p>
+                            </div>
+                            <div style="position: relative;">
+                                <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; color: #94a3b8;"></i>
+                                <input type="text" id="search-crud-ws" placeholder="Cari Sesi Kerja..." onkeyup="filterCRUD('worksession')"
+                                       style="padding: 6px 10px 6px 32px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; font-size: 0.875rem; width: 200px; height: 38px;">
+                            </div>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-container">

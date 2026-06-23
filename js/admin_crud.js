@@ -181,3 +181,35 @@ function loadKelolaDatabaseTab() {
     fetchCRUDData('attendance');
     fetchCRUDData('work_session');
 }
+
+function filterCRUD(type) {
+    let inputId = '';
+    let tbodyId = '';
+    
+    if (type === 'employee') {
+        inputId = 'search-crud-emp';
+        tbodyId = 'crud-employee-tbody';
+    } else if (type === 'attendance') {
+        inputId = 'search-crud-att';
+        tbodyId = 'crud-attendance-tbody';
+    } else if (type === 'worksession') {
+        inputId = 'search-crud-ws';
+        tbodyId = 'crud-worksession-tbody';
+    }
+    
+    let input = document.getElementById(inputId);
+    if (!input) return;
+    let filter = input.value.toLowerCase();
+    let tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    let trs = tbody.getElementsByTagName('tr');
+    
+    for (let i = 0; i < trs.length; i++) {
+        let text = trs[i].innerText.toLowerCase();
+        if (text.indexOf(filter) > -1) {
+            trs[i].style.display = "";
+        } else {
+            trs[i].style.display = "none";
+        }
+    }
+}

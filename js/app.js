@@ -57,11 +57,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const searchMasterInput = document.getElementById('search-master');
     if (searchMasterInput) {
-        searchMasterInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                currentMasterPage = 1; // Reset page on search
-                renderTable();
-            }
+        searchMasterInput.addEventListener('input', function () {
+            currentMasterPage = 1; // Reset page on search
+            renderTable();
         });
     }
 
@@ -96,11 +94,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const searchHistoryInput = document.getElementById('search-history');
     if (searchHistoryInput) {
-        searchHistoryInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                currentHistoryPage = 1;
-                renderHistoryTable();
-            }
+        searchHistoryInput.addEventListener('input', function () {
+            currentHistoryPage = 1;
+            renderHistoryTable();
         });
     }
 
@@ -2480,8 +2476,8 @@ if (limitAttAdmin) {
 
 const searchAttAdmin = document.getElementById('search-att-admin');
 if (searchAttAdmin) {
-    searchAttAdmin.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') fetchAttAdminData();
+    searchAttAdmin.addEventListener('input', function () {
+        fetchAttAdminData();
     });
 }
 
